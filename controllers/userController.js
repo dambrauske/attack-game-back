@@ -18,6 +18,7 @@ module.exports = {
                     username,
                     image,
                     password: hash,
+                    money: 200,
                 })
 
                 const userToken = {
