@@ -4,7 +4,7 @@ const router = express.Router()
 const {
     createUser,
     login,
-} = require('../controllers/mainController')
+} = require('../controllers/userController')
 
 const {
     checkToken

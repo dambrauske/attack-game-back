@@ -15,6 +15,10 @@ const userSchema = new Schema({
         type: String,
         required: true,
     },
+    money: {
+        type: Number,
+        required: true,
+    }
 })
 
 const userLogin = mongoose.model('Game-users', userSchema)
