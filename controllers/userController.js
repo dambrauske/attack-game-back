@@ -31,7 +31,7 @@ module.exports = {
 
                 const defaultWeapon = new inventoryDb({
                     userId: newUser._id,
-                    name: 'weapon',
+                    name: 'default weapon',
                     damage: 3,
                     image: 'https://cdn.pixabay.com/photo/2021/05/24/20/13/knife-6280510_1280.png',
                     grade: 'C',
@@ -46,12 +46,13 @@ module.exports = {
                         data: {
                             token,
                             username: newUser.username,
+                            money: newUser.money,
                             image: newUser.image,
                             defaultWeapon,
                         },
                     })
                 } catch (error) {
-                    res.status(500).send({error: true, message: error, data: null})
+                    res.status(500).send({error: true, message: 'Error', data: null})
                 }
             } else {
                 const isValid = await bcrypt.compare(password, user.password)

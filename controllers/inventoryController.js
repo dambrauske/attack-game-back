@@ -34,14 +34,21 @@ module.exports = {
         const {itemId} = req.body
 
         const item = await inventoryDb.findOne({_id: itemId})
+        console.log('deleteItem', item)
 
         if (!item) {
             res.status(404).send({error: true, message: 'Item not found', data: null});
         }
 
+        if (item.name === 'default weapon') {
+            return res.status(404).send({error: true, message: 'Default weapon cannot be removed', data: null});
+        }
+
         try {
             await inventoryDb.findOneAndDelete({_id: itemId})
-            const items = await inventoryDb.find({userId: user._id})
+            console.log('userId', user.id)
+            const items = await inventoryDb.find({userId: user.id})
+            console.log('items after deletion', items)
             res.status(200).send({error: false, message: 'Item deleted', data: items});
 
         } catch (error) {
@@ -55,7 +62,6 @@ module.exports = {
 
         try {
             const items = await inventoryDb.find({userId: user.id})
-            console.log('user items', items)
             res.status(200).send({error: false, message: 'Items retrieved', data: items});
 
         } catch (error) {
