@@ -52,6 +52,7 @@ const generateWeapon = () => {
     const gold = generateRandomInt(...weaponGradesDescriptor[grade].generatedGoldRange)
 
     return {
+        name: 'weapon',
         image: getWeaponImage(weaponImages),
         grade,
         damage,

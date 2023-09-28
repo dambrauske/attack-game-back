@@ -2,6 +2,8 @@ const {Server} = require('socket.io')
 const weaponGeneration = require('./weaponGeneration.js')
 const armourGeneration = require('./armourGeneration.js')
 const potionGeneration = require('./potionGeneration.js')
+// const defaultWeaponGeneration = require('./defaultWeaponGeneration.js')
+
 
 
 module.exports = (server) => {
@@ -41,6 +43,14 @@ module.exports = (server) => {
 
         socket.emit('images', images)
 
+        // socket.once('generateDefaultWeapon', () => {
+        //     console.log('received default weapon request from socket')
+        //     const defaultWeapon = defaultWeaponGeneration.generateDefaultWeapon()
+        //     console.log('Generated default weapon:', defaultWeapon)
+        //     socket.emit('generatedDefaultWeapon', defaultWeapon)
+        //
+        // })
+
         // io.emit('images', images)
 
         socket.on('generateWeapon', () => {
@@ -67,6 +77,8 @@ module.exports = (server) => {
             console.log('Generated potion:', potion)
             socket.emit('generatedPotion', potion)
         })
+
+
     })
 
 }

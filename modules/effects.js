@@ -9,13 +9,13 @@ const chanceGenerator = (percentage) => {
 }
 
 const Effects = {
-    criticalChanceEffect: () => {
+    'critical chance': () => {
         return chanceGenerator(0.5)
     },
-    dodgeChanceEffect: () => {
+    'dodge chance': () => {
         return chanceGenerator(0.5)
     },
-    lifeStealChanceEffect: () => {
+    'life steal chance': () => {
         return chanceGenerator(0.5)
     }
 }

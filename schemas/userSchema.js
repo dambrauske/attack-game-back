@@ -18,7 +18,7 @@ const userSchema = new Schema({
     money: {
         type: Number,
         required: true,
-    }
+    },
 })
 
 const userLogin = mongoose.model('Game-users', userSchema)

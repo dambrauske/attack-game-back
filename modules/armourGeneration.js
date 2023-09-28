@@ -1,9 +1,6 @@
 const {
     Effects,
-    chanceGenerator,
     generateEffects,
-    generateCriticalChance,
-    generateDodgeChance
 } = require('./effects.js')
 
 const {
@@ -47,6 +44,7 @@ const generateArmour = () => {
     const effects = generateEffects(Effects, armourGradesDescriptor[grade].maxEffects)
 
     return {
+        name: 'armour',
         image: getArmourImage(armourImages),
         grade,
         armour,
