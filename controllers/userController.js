@@ -19,7 +19,7 @@ module.exports = {
                     username,
                     image,
                     password: hash,
-                    money: 200,
+                    money: 2000,
                 })
 
                 const userToken = {
@@ -79,6 +79,44 @@ module.exports = {
             }
         } catch (error) {
             res.status(500).send({error: true, message: 'An error occurred', data: null})
+        }
+    },
+    getUSer: async (req, res) => {
+        const user = req.user
+        console.log(user)
+
+        try {
+            const userData = await userDb.findOne({_id: user.id})
+            res.status(200).send({
+                error: false, message: 'User found', data: {
+                    username: userData.username,
+                    image: userData.image,
+                    money: userData.money,
+                }
+            })
+
+        } catch (error) {
+            res.status(404).send({error: true, message: 'User not found', data: null})
+            console.log('getUSer error', error)
+        }
+    },
+    getAllUsersExceptCurrent: async (req, res) => {
+        const currentUser = req.user
+
+        try {
+            const allUsers = await userDb.find({ _id: { $ne: currentUser.id } })
+
+            res.status(200).send({
+                error: false,
+                message: 'Users found',
+                data: allUsers,
+            })
+        } catch (error) {
+            res.status(500).send({
+                error: true,
+                message: 'An error occurred while fetching users',
+                data: null,
+            })
         }
     },
 }

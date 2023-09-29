@@ -3,6 +3,8 @@ const router = express.Router()
 
 const {
     login,
+    getUSer,
+    getAllUsersExceptCurrent,
 } = require('../controllers/userController')
 
 const {
@@ -19,6 +21,8 @@ router.post('/login', login)
 router.post('/addToInventory', checkToken, addItemToInventory)
 router.post('/deleteItem', checkToken, deleteItem)
 router.get('/getInventory', checkToken, getUserInventoryItems)
+router.get('/getUser', checkToken, getUSer)
+router.get('/getUsers', checkToken, getAllUsersExceptCurrent)
 
 
 module.exports = router
