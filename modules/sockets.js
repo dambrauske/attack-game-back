@@ -81,10 +81,6 @@ module.exports = (server) => {
             })
 
 
-            // socket.on('disconnect', () => {
-            //     console.log('Socket disconnected:', socket.id);
-            // })
-
             socket.on('userLoggedOut', async (token) => {
                 console.log('received userLoggedOut request from socket')
 
@@ -105,11 +101,6 @@ module.exports = (server) => {
                 }
             })
 
-            // socket.on('createGameSession', (user1, user2) => {
-            //     const gameSessionId = Math.random().toString()
-            //     socket.join(gameSessionId);
-            //     console.log(`User ${user1} and ${user2} joined game session ${gameSessionId}`);
-            // })
 
             socket.on('userDisconnect', async (token) => {
                 console.log('received userDisconnect request from socket')
@@ -412,7 +403,7 @@ module.exports = (server) => {
                         image: senderImage,
                         hp: 100,
                         money: 0,
-                        attackTurn: true,
+                        attackTurn: sender,
                         equipment: senderEquipment,
                     }
 
@@ -421,7 +412,7 @@ module.exports = (server) => {
                         image: receiverImage,
                         hp: 100,
                         money: 0,
-                        attackTurn: false,
+                        attackTurn: sender,
                         equipment: receiverEquipment,
                     }
 
@@ -455,19 +446,39 @@ module.exports = (server) => {
                     return (armour / 100) * damage
                 }
 
-                if (player1.attackTurn === true) {
-                    player2.hp -= (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
+                console.log(typeof player2.attackTurn)
+
+                if (player1.attackTurn === player1.username) {
+                    if (player2Armour) {
+                        player2.hp -= (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
+                    } else {
+                        player2.hp =- player1Weapon.damage
+                    }
+
                     player1.money += player1Weapon.generateGold
-                    player2.attackTurn = true
-                    player1.attackTurn = false
+
+                    // if (player2.hp <= 0) {
+                    //     io.to('gameRoom').emit('gameOver', {lost: player2, won: player1})
+                    // }
+
+                    player1.attackTurn = player2.username
+                    player2.attackTurn = player2.username
+                } else {
+                    if (player1Armour) {
+                        player1.hp -= (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
+                    } else {
+                        player1.hp =- player2Weapon.damage
+                    }
+                    player2.money += player2Weapon.generateGold
+                    //
+                    // if (player1.hp <= 0) {
+                    //     io.to('gameRoom').emit('gameOver', {lost: player1, won: player2})
+                    // }
+
+                    player2.attackTurn = player1.username
+                    player1.attackTurn = player1.username
                 }
 
-                if (player2.attackTurn === true) {
-                    player1.hp -= (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
-                    player2.money += player2Weapon.generateGold
-                    player1.attackTurn = true
-                    player2.attackTurn = false
-                }
 
                 const attackData = [player1, player2]
                 console.log('attackData', attackData)
