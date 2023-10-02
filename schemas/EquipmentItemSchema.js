@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 
-const inventoryItemSchema = new Schema({
+const equipmentItemSchema = new Schema({
 
     userId: {
         type: String,
@@ -24,7 +24,6 @@ const inventoryItemSchema = new Schema({
         type: Number,
         required: false,
     },
-
     image: {
         type: String,
         required: true,
@@ -48,6 +47,6 @@ const inventoryItemSchema = new Schema({
 
 })
 
-const userInventory = mongoose.model('Game-inventory', inventoryItemSchema)
+const userEquipment = mongoose.model('User-equipment', equipmentItemSchema)
 
-module.exports = userInventory
+module.exports = userEquipment
