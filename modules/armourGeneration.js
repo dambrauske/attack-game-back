@@ -4,7 +4,6 @@ const {
 } = require('./effects.js')
 
 const {
-    generateRandomNum,
     generateRandomInt,
 } = require('./helperFunctions.js')
 

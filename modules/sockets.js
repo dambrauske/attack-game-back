@@ -46,6 +46,11 @@ module.exports = (server) => {
 
             console.log(`user connected: ${socket.id}`)
 
+            socket.on('disconnect', () => {
+                console.log(`Socket ${socket.id} disconnected`)
+                socket.leave('gameRoom');
+            })
+
             socket.emit('images', images)
 
             socket.join('logged-in-users')
@@ -71,7 +76,6 @@ module.exports = (server) => {
                         })
 
                         io.emit('loggedInUsers', loggedInUsers)
-                        console.log('loggedInUsers after login', loggedInUsers)
                     } else {
                         console.log('user not found')
                     }
@@ -132,7 +136,6 @@ module.exports = (server) => {
 
                     if (userData.money >= price) {
                         const updatedMoney = userData.money - price
-                        console.log('user money updated', updatedMoney)
 
                         await userDb.findOneAndUpdate(
                             {_id: userId},
@@ -145,8 +148,7 @@ module.exports = (server) => {
                         const potion = potionGeneration.generatePotion()
 
                         const items = [weapon, armour, potion]
-                        console.log('items', items)
-                        console.log('updatedMoney', updatedMoney)
+
 
                         socket.emit('itemsGenerated', {items, updatedMoney})
 
@@ -262,7 +264,6 @@ module.exports = (server) => {
 
             socket.on('deleteFromInventory', async (data) => {
                 console.log('received deleteFromInventory request from socket')
-                console.log('data from front:', data)
 
                 const token = data.token
                 let userId
@@ -281,7 +282,6 @@ module.exports = (server) => {
                         try {
                             await inventoryDb.findOneAndDelete({_id: itemId})
                             const inventory = await inventoryDb.find({userId: userId})
-                            console.log('items after deletion', inventory)
                             socket.emit('updatedInventory', inventory);
 
                         } catch (error) {
@@ -313,7 +313,6 @@ module.exports = (server) => {
                         try {
                             await equipmentDb.findOneAndDelete({_id: itemId})
                             const equipment = await equipmentDb.find({userId: userId})
-                            console.log('equipment after deletion', equipment)
                             socket.emit('updatedEquipment', equipment);
 
                         } catch (error) {
@@ -379,21 +378,14 @@ module.exports = (server) => {
                 console.log('JOIN GAME REQUEST')
                 socket.join('gameRoom')
 
-                console.log('sender from front', sender)
-                console.log('receiver from front', receiver)
 
                 try {
                     const senderFound = await userDb.findOne({username: sender})
                     const receiverFound = await userDb.findOne({username: receiver})
 
-                    console.log('senderFound in database', senderFound)
-                    console.log('receiverFound in database', receiverFound)
-
                     const senderEquipment = await equipmentDb.find({userId: senderFound._id})
                     const receiverEquipment = await equipmentDb.find({userId: receiverFound._id})
 
-                    console.log('EQUIPMENT senderEquipment:', senderEquipment)
-                    console.log('EQUIPMENT receiverEquipment:', receiverEquipment)
 
                     const senderImage = senderFound.image
                     const receiverImage = receiverFound.image
@@ -417,49 +409,45 @@ module.exports = (server) => {
                     }
 
                     const gameData = [player1, player2]
-                    console.log('gameData', gameData)
 
                     io.to('gameRoom').emit('StartGameData', gameData)
                 } catch (error) {
                     console.error('Error while StartGameData', error)
                 }
 
-
             })
+
+            socket.on('leaveRoom', () => {
+                socket.leave('gameRoom');
+                console.log(`Socket ${socket.id} left the game`);
+            })
+
 
             socket.on('sendAttackData', async (player1, player2) => {
                 console.log('received sendAttackData REQUEST:')
 
-                console.log('player1', player1)
-                console.log('player2', player2)
+
 
                 const player1Weapon = player1.equipment.find(item => item.name === 'weapon')
                 const player2Weapon = player2.equipment.find(item => item.name === 'weapon')
                 const player1Armour = player1.equipment.find(item => item.name === 'armour')
                 const player2Armour = player2.equipment.find(item => item.name === 'armour')
 
-                console.log('player1Weapon', player1Weapon)
-                console.log('player1Armour', player1Armour)
-                console.log('player2Weapon', player1Weapon)
-                console.log('player2Armour', player1Armour)
+
                 const blockedDamage = (armour, damage) => {
                     return (armour / 100) * damage
                 }
 
-                console.log(typeof player2.attackTurn)
 
                 if (player1.attackTurn === player1.username) {
                     if (player2Armour) {
                         player2.hp -= (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
                     } else {
-                        player2.hp =- player1Weapon.damage
+                        player2.hp = -player1Weapon.damage
                     }
 
                     player1.money += player1Weapon.generateGold
 
-                    // if (player2.hp <= 0) {
-                    //     io.to('gameRoom').emit('gameOver', {lost: player2, won: player1})
-                    // }
 
                     player1.attackTurn = player2.username
                     player2.attackTurn = player2.username
@@ -467,13 +455,10 @@ module.exports = (server) => {
                     if (player1Armour) {
                         player1.hp -= (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
                     } else {
-                        player1.hp =- player2Weapon.damage
+                        player1.hp = -player2Weapon.damage
                     }
                     player2.money += player2Weapon.generateGold
-                    //
-                    // if (player1.hp <= 0) {
-                    //     io.to('gameRoom').emit('gameOver', {lost: player1, won: player2})
-                    // }
+
 
                     player2.attackTurn = player1.username
                     player1.attackTurn = player1.username
@@ -481,7 +466,6 @@ module.exports = (server) => {
 
 
                 const attackData = [player1, player2]
-                console.log('attackData', attackData)
 
                 io.to('gameRoom').emit('attackData', attackData)
 
