@@ -442,12 +442,15 @@ module.exports = (server) => {
                 console.log('player1', player1)
                 console.log('player2', player2)
 
-                const player1Weapon = player1.equipment.filter(item => item.name === 'weapon')
-                const player2Weapon = player2.equipment.filter(item => item.name === 'weapon')
+                const player1Weapon = player1.equipment.find(item => item.name === 'weapon')
+                const player2Weapon = player2.equipment.find(item => item.name === 'weapon')
+                const player1Armour = player1.equipment.find(item => item.name === 'armour')
+                const player2Armour = player2.equipment.find(item => item.name === 'armour')
 
-                const player1Armour = player1.equipment.filter(item => item.name === 'armour')
-                const player2Armour = player2.equipment.filter(item => item.name === 'armour')
-
+                console.log('player1Weapon', player1Weapon)
+                console.log('player1Armour', player1Armour)
+                console.log('player2Weapon', player1Weapon)
+                console.log('player2Armour', player1Armour)
                 const blockedDamage = (armour, damage) => {
                     return (armour / 100) * damage
                 }
@@ -467,6 +470,7 @@ module.exports = (server) => {
                 }
 
                 const attackData = [player1, player2]
+                console.log('attackData', attackData)
 
                 io.to('gameRoom').emit('attackData', attackData)
 
