@@ -95,8 +95,6 @@ module.exports = (server) => {
 
                     if (userData) {
                         loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
-                        console.log('loggedInUsers after one logout', loggedInUsers)
-                        console.log('loggedOutUserId', userId)
                         io.emit('loggedInUsers', loggedInUsers)
 
                     } else {
@@ -121,7 +119,6 @@ module.exports = (server) => {
                     const userId = decoded.id
 
                     loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
-                    console.log('loggedInUsers', loggedInUsers)
                     io.emit('loggedInUsers', loggedInUsers)
 
 
@@ -173,7 +170,6 @@ module.exports = (server) => {
 
             socket.on('addToInventory', async (data) => {
                 console.log('received addToInventory request from socket')
-                console.log('data from front:', data)
 
                 const token = data.token
                 let userId;
@@ -181,9 +177,7 @@ module.exports = (server) => {
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     userId = decoded.id
-                    console.log('User ID:', userId)
 
-                    console.log('DATA: from socket with token and item', data)
 
                     const newItem = new inventoryDb({
                         userId: userId,
@@ -391,20 +385,27 @@ module.exports = (server) => {
             })
 
             socket.on('joinGame', async (sender, receiver) => {
+                console.log('JOIN GAME REQUEST')
                 socket.join('gameRoom')
+
+                console.log('sender from front', sender)
+                console.log('receiver from front', receiver)
 
                 try {
                     const senderFound = await userDb.findOne({username: sender})
                     const receiverFound = await userDb.findOne({username: receiver})
 
-                    console.log('senderFound', senderFound)
-                    console.log('receiverFound', receiverFound)
+                    console.log('senderFound in database', senderFound)
+                    console.log('receiverFound in database', receiverFound)
+
+                    const senderEquipment = await equipmentDb.find({userId: senderFound._id})
+                    const receiverEquipment = await equipmentDb.find({userId: receiverFound._id})
+
+                    console.log('EQUIPMENT senderEquipment:', senderEquipment)
+                    console.log('EQUIPMENT receiverEquipment:', receiverEquipment)
+
                     const senderImage = senderFound.image
                     const receiverImage = receiverFound.image
-
-                    console.log('senderImage', senderImage)
-                    console.log('receiverImage', receiverImage)
-
 
                     const player1 = {
                         username: sender,
@@ -412,6 +413,7 @@ module.exports = (server) => {
                         hp: 100,
                         money: 0,
                         attackTurn: true,
+                        equipment: senderEquipment,
                     }
 
                     const player2 = {
@@ -420,9 +422,11 @@ module.exports = (server) => {
                         hp: 100,
                         money: 0,
                         attackTurn: false,
+                        equipment: receiverEquipment,
                     }
 
                     const gameData = [player1, player2]
+                    console.log('gameData', gameData)
 
                     io.to('gameRoom').emit('StartGameData', gameData)
                 } catch (error) {
@@ -432,6 +436,41 @@ module.exports = (server) => {
 
             })
 
+            socket.on('sendAttackData', async (player1, player2) => {
+                console.log('received sendAttackData REQUEST:')
+
+                console.log('player1', player1)
+                console.log('player2', player2)
+
+                const player1Weapon = player1.equipment.filter(item => item.name === 'weapon')
+                const player2Weapon = player2.equipment.filter(item => item.name === 'weapon')
+
+                const player1Armour = player1.equipment.filter(item => item.name === 'armour')
+                const player2Armour = player2.equipment.filter(item => item.name === 'armour')
+
+                const blockedDamage = (armour, damage) => {
+                    return (armour / 100) * damage
+                }
+
+                if (player1.attackTurn === true) {
+                    player2.hp -= (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
+                    player1.money += player1Weapon.generateGold
+                    player2.attackTurn = true
+                    player1.attackTurn = false
+                }
+
+                if (player2.attackTurn === true) {
+                    player1.hp -= (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
+                    player2.money += player2Weapon.generateGold
+                    player1.attackTurn = true
+                    player2.attackTurn = false
+                }
+
+                const attackData = [player1, player2]
+
+                io.to('gameRoom').emit('attackData', attackData)
+
+            })
 
         }
     )
