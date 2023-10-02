@@ -7,6 +7,7 @@ const inventoryDb = require('../schemas/inventoryItemSchema');
 const equipmentDb = require('../schemas/equipmentItemSchema');
 const jwt = require('jsonwebtoken')
 
+
 module.exports = (server) => {
 
     const io = new Server(server, {
@@ -48,7 +49,10 @@ module.exports = (server) => {
             socket.emit('images', images)
 
             socket.join('logged-in-users')
-            io.in('logged-in-users').emit('loggedInUsers', loggedInUsers)
+
+            socket.on('getLoggedInUsers', () => {
+                io.to('logged-in-users').emit('loggedInUsers', loggedInUsers)
+            })
 
             socket.on('userLogin', async (token) => {
                 console.log('received userLogin request from socket')
@@ -66,10 +70,7 @@ module.exports = (server) => {
                             image: userData.image
                         })
 
-                        // const usersQuery = userDb.find({_id: {$in: loggedInUsers}}, {username: 1, image: 1});
-                        // const users = await usersQuery.exec()
-
-                        io.emit('loggedInUsers', loggedInUsers);
+                        io.emit('loggedInUsers', loggedInUsers)
                         console.log('loggedInUsers after login', loggedInUsers)
                     } else {
                         console.log('user not found')
@@ -78,6 +79,7 @@ module.exports = (server) => {
                     console.error('Error while user logging in', error)
                 }
             })
+
 
             // socket.on('disconnect', () => {
             //     console.log('Socket disconnected:', socket.id);
@@ -92,8 +94,10 @@ module.exports = (server) => {
                     const userData = await userDb.findOne({_id: userId})
 
                     if (userData) {
-                        loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
-                        console.log('loggedInUsers', loggedInUsers)
+                        loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
+                        console.log('loggedInUsers after one logout', loggedInUsers)
+                        console.log('loggedOutUserId', userId)
+                        io.emit('loggedInUsers', loggedInUsers)
 
                     } else {
                         console.log('user not found')
@@ -103,11 +107,11 @@ module.exports = (server) => {
                 }
             })
 
-            socket.on('createGameSession', (user1, user2) => {
-                const gameSessionId = Math.random().toString()
-                socket.join(gameSessionId);
-                console.log(`User ${user1} and ${user2} joined game session ${gameSessionId}`);
-            })
+            // socket.on('createGameSession', (user1, user2) => {
+            //     const gameSessionId = Math.random().toString()
+            //     socket.join(gameSessionId);
+            //     console.log(`User ${user1} and ${user2} joined game session ${gameSessionId}`);
+            // })
 
             socket.on('userDisconnect', async (token) => {
                 console.log('received userDisconnect request from socket')
@@ -116,8 +120,10 @@ module.exports = (server) => {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
 
-                    loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
+                    loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
                     console.log('loggedInUsers', loggedInUsers)
+                    io.emit('loggedInUsers', loggedInUsers)
+
 
                 } catch (error) {
                     console.error('Error while user logging in', error)
@@ -354,21 +360,29 @@ module.exports = (server) => {
                 }
             })
 
-            socket.on('sendGameRequest', (targetSocketId, senderUsername) => {
+            socket.on('sendGameRequest', (targetSocketId, senderUsername, receiverUsername) => {
 
-                const gameRequest = {
+                const data = {
                     senderId: socket.id,
+                    receiverId: targetSocketId,
                     sender: senderUsername,
+                    receiver: receiverUsername,
                     message: 'Would you like to play a game?',
                 }
 
-                io.to(targetSocketId).emit('gameRequest', gameRequest);
-
+                io.to(targetSocketId).emit('gameRequest', data);
             })
 
-            socket.on('acceptGameRequest', (targetSocketId) => {
-                const message = 'Game accepted'
-                io.to(targetSocketId).emit('acceptedGameRequest', message);
+
+            socket.on('acceptGameRequest', (targetSocketId, senderUsername, receiverUsername) => {
+                const data = {
+                    senderId: socket.id,
+                    receiverId: targetSocketId,
+                    sender: senderUsername,
+                    receiver: receiverUsername,
+                    message: 'Game accepted',
+                }
+                io.to(targetSocketId).emit('acceptedGameRequest', data);
             })
 
             socket.on('declineGameRequest', (targetSocketId) => {
@@ -376,8 +390,46 @@ module.exports = (server) => {
                 io.to(targetSocketId).emit('declinedGameRequest', message);
             })
 
-            socket.on('joinGame', () => {
-                socket.join('gameRoom');
+            socket.on('joinGame', async (sender, receiver) => {
+                socket.join('gameRoom')
+
+                try {
+                    const senderFound = await userDb.findOne({username: sender})
+                    const receiverFound = await userDb.findOne({username: receiver})
+
+                    console.log('senderFound', senderFound)
+                    console.log('receiverFound', receiverFound)
+                    const senderImage = senderFound.image
+                    const receiverImage = receiverFound.image
+
+                    console.log('senderImage', senderImage)
+                    console.log('receiverImage', receiverImage)
+
+
+                    const player1 = {
+                        username: sender,
+                        image: senderImage,
+                        hp: 100,
+                        money: 0,
+                        attackTurn: true,
+                    }
+
+                    const player2 = {
+                        username: receiver,
+                        image: receiverImage,
+                        hp: 100,
+                        money: 0,
+                        attackTurn: false,
+                    }
+
+                    const gameData = [player1, player2]
+
+                    io.to('gameRoom').emit('StartGameData', gameData)
+                } catch (error) {
+                    console.error('Error while StartGameData', error)
+                }
+
+
             })
 
 
