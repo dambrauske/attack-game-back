@@ -17,30 +17,14 @@ module.exports = (server) => {
     })
 
     const images = [
-        {
-            image: 'https://cdn.pixabay.com/photo/2022/12/14/19/34/knight-7656103_1280.jpg',
-            username: '',
-        },
-        {
-            image: 'https://cdn.pixabay.com/photo/2022/12/02/21/22/warrior-7631680_1280.jpg',
-            username: '',
-        },
-        {
-            image: 'https://cdn.pixabay.com/photo/2023/07/25/22/06/ai-generated-8149993_1280.jpg',
-            username: '',
-        },
-        {
-            image: 'https://cdn.pixabay.com/photo/2022/12/02/21/22/warrior-7631678_1280.jpg',
-            username: '',
-        },
-        {
-            image: 'https://cdn.pixabay.com/photo/2022/09/27/15/36/diablo-7483039_1280.jpg',
-            username: '',
-        },
+        'https://cdn.pixabay.com/photo/2022/12/14/19/34/knight-7656103_1280.jpg',
+        'https://cdn.pixabay.com/photo/2022/12/02/21/22/warrior-7631680_1280.jpg',
+        'https://cdn.pixabay.com/photo/2023/07/25/22/06/ai-generated-8149993_1280.jpg',
+        'https://cdn.pixabay.com/photo/2022/12/02/21/22/warrior-7631678_1280.jpg',
+        'https://cdn.pixabay.com/photo/2022/09/27/15/36/diablo-7483039_1280.jpg',
     ]
 
     let loggedInUsers = []
-
 
     io.on('connection', (socket) => {
 
@@ -48,19 +32,20 @@ module.exports = (server) => {
 
             socket.on('disconnect', () => {
                 console.log(`Socket ${socket.id} disconnected`)
-                socket.leave('gameRoom');
+                socket.leave('gameRoom')
+                loggedInUsers = [...loggedInUsers].filter(user => user.socketId !== socket.id)
+                io.emit('loggedInUsers', loggedInUsers)
             })
 
             socket.emit('images', images)
 
-            socket.join('logged-in-users')
-
             socket.on('getLoggedInUsers', () => {
-                io.to('logged-in-users').emit('loggedInUsers', loggedInUsers)
+                io.emit('loggedInUsers', loggedInUsers)
             })
 
             socket.on('userLogin', async (token) => {
                 console.log('received userLogin request from socket')
+                console.log('token', token)
 
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
@@ -68,13 +53,27 @@ module.exports = (server) => {
                     const userData = await userDb.findOne({_id: userId})
 
                     if (userData) {
-                        loggedInUsers.push({
-                            userId,
-                            username: userData.username,
-                            socketId: socket.id,
-                            image: userData.image
-                        })
 
+                        const userAlreadyOnline = loggedInUsers.find(user => user.id === userData._id)
+
+                        if (userAlreadyOnline) {
+                            loggedInUsers = loggedInUsers.map(user => {
+                                if (user.id === userAlreadyOnline.id) {
+                                    return {
+                                        ...user,
+                                        socketId: socket.id,
+                                    }
+                                }
+                                return user
+                            })
+                        } else {
+                            loggedInUsers.push({
+                                id: userId,
+                                username: userData.username,
+                                socketId: socket.id,
+                                image: userData.image
+                            })
+                        }
                         io.emit('loggedInUsers', loggedInUsers)
                     } else {
                         console.log('user not found')
@@ -84,7 +83,6 @@ module.exports = (server) => {
                 }
             })
 
-
             socket.on('userLoggedOut', async (token) => {
                 console.log('received userLoggedOut request from socket')
 
@@ -92,9 +90,12 @@ module.exports = (server) => {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
                     const userData = await userDb.findOne({_id: userId})
+                    console.log('userId', userId)
 
                     if (userData) {
-                        loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
+                        console.log('loggedInUsers', loggedInUsers)
+                        loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
+                        console.log('newLoggedInUsers', loggedInUsers)
                         io.emit('loggedInUsers', loggedInUsers)
 
                     } else {
@@ -113,10 +114,8 @@ module.exports = (server) => {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
 
-                    loggedInUsers = loggedInUsers.filter(user => user.userId !== userId)
+                    loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
                     io.emit('loggedInUsers', loggedInUsers)
-
-
                 } catch (error) {
                     console.error('Error while user logging in', error)
                 }
@@ -377,7 +376,6 @@ module.exports = (server) => {
             socket.on('joinGame', async (sender, receiver) => {
                 console.log('JOIN GAME REQUEST')
                 socket.join('gameRoom')
-
 
                 try {
                     const senderFound = await userDb.findOne({username: sender})

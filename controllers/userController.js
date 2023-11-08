@@ -11,7 +11,6 @@ module.exports = {
         try {
             const user = await userDb.findOne({username: username})
 
-            // IF NEW USER
             if (!user) {
                 const hash = await bcrypt.hash(password, 13)
                 console.log('new user tries to login')
@@ -19,7 +18,7 @@ module.exports = {
                     username,
                     image,
                     password: hash,
-                    money: 2000,
+                    money: 200,
                 })
 
                 const userToken = {
@@ -65,7 +64,7 @@ module.exports = {
                     const userToken = {
                         id: user.id,
                         username: user.username,
-                    };
+                    }
                     const token = jwt.sign(userToken, process.env.JWT_SECRET)
 
                     res.status(200).send({
