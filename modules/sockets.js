@@ -180,7 +180,6 @@ module.exports = (server) => {
                         image: data.item.image,
                         grade: data.item.grade,
                         hp: data.item.hp,
-                        effects: data.item.effects,
                         generateGold: data.item.generateGold,
                     });
 
@@ -219,7 +218,6 @@ module.exports = (server) => {
                         image: data.item.image,
                         grade: data.item.grade,
                         hp: data.item.hp,
-                        effects: data.item.effects,
                         generateGold: data.item.generateGold,
                     })
 

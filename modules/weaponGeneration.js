@@ -1,13 +1,4 @@
 const {
-    Effects,
-    chanceGenerator,
-    generateEffects,
-    generateCriticalChance,
-    generateDodgeChance
-} = require('./effects.js')
-
-const {
-    generateRandomNum,
     generateRandomInt,
 } = require('./helperFunctions.js')
 
@@ -28,27 +19,21 @@ const weaponImages = [
 const weaponGradesDescriptor = {
     'A': {
         damageRange: [6,30],
-        maxEffects: 3,
         generatedGoldRange: [1, 10]
     },
     'B': {
         damageRange: [3,20],
-        maxEffects: 1,
         generatedGoldRange: [1, 6]
     },
     'C': {
         damageRange: [1,5],
-        maxEffects: 0,
         generatedGoldRange: [1, 3]
     }
 }
 
-
-
 const generateWeapon = () => {
     const grade = getWeaponGrade(weaponGradesDescriptor)
     const damage = generateRandomInt(...weaponGradesDescriptor[grade].damageRange)
-    const effects = generateEffects(Effects, weaponGradesDescriptor[grade].maxEffects)
     const gold = generateRandomInt(...weaponGradesDescriptor[grade].generatedGoldRange)
 
     return {
@@ -57,7 +42,6 @@ const generateWeapon = () => {
         image: getWeaponImage(weaponImages),
         grade,
         damage,
-        effects,
         generateGold: gold,
     }
 }

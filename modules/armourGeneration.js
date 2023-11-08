@@ -1,9 +1,4 @@
 const {
-    Effects,
-    generateEffects,
-} = require('./effects.js')
-
-const {
     generateRandomInt,
 } = require('./helperFunctions.js')
 
@@ -24,15 +19,12 @@ const armourImages = [
 const armourGradesDescriptor = {
     'A': {
         armourRange: [10,90],
-        maxEffects: 3,
     },
     'B': {
         armourRange: [0,50],
-        maxEffects: 1,
     },
     'C': {
         armourRange: [0,20],
-        maxEffects: 0,
     }
 }
 
@@ -40,7 +32,6 @@ const armourGradesDescriptor = {
 const generateArmour = () => {
     const grade = getArmourGrade(armourGradesDescriptor)
     const armour = generateRandomInt(...armourGradesDescriptor[grade].armourRange)
-    const effects = generateEffects(Effects, armourGradesDescriptor[grade].maxEffects)
 
     return {
         name: 'armour',
@@ -48,7 +39,6 @@ const generateArmour = () => {
         image: getArmourImage(armourImages),
         grade,
         armour,
-        effects,
     }
 }
 

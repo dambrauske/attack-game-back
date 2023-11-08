@@ -37,10 +37,6 @@ const inventoryItemSchema = new Schema({
         type: Number,
         required: false,
     },
-    effects: {
-        type: [String],
-        required: false,
-    },
     generateGold: {
         type: Number,
         required: false,
