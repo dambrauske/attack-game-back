@@ -53,6 +53,7 @@ const generateWeapon = () => {
 
     return {
         name: 'weapon',
+        default: false,
         image: getWeaponImage(weaponImages),
         grade,
         damage,

@@ -10,7 +10,7 @@ const equipmentItemSchema = new Schema({
     },
     default: {
         type: Boolean,
-        required: false,
+        required: true,
     },
     name: {
         type: String,

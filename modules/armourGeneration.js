@@ -44,6 +44,7 @@ const generateArmour = () => {
 
     return {
         name: 'armour',
+        default: false,
         image: getArmourImage(armourImages),
         grade,
         armour,
