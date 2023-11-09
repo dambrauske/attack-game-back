@@ -100,19 +100,6 @@ module.exports = (server) => {
                 }
             })
 
-
-            socket.on('userDisconnect', async (token) => {
-                try {
-                    const decoded = await jwt.verify(token, process.env.JWT_SECRET)
-                    const userId = decoded.id
-
-                    loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
-                    io.emit('loggedInUsers', loggedInUsers)
-                } catch (error) {
-                    console.error('Error while user logging in', error)
-                }
-            })
-
             socket.on('generateItems', async (data) => {
                 const token = data.token
                 const price = data.price
@@ -333,7 +320,6 @@ module.exports = (server) => {
                 io.to(receiverSocketid).emit('gameRequest', data)
             })
 
-
             socket.on('acceptGameRequest', async (sender, receiver) => {
                 const receiverLoggedIn = loggedInUsers.filter(user => user.username === receiver)
                 const receiverSocketId = receiverLoggedIn[0].socketId
@@ -458,10 +444,7 @@ module.exports = (server) => {
                     io.to(userSocketid).emit('potionUsed', {player1, player2});
                     io.to(player1SocketId).emit('potionUsed', {player1, player2});
                 }
-
-
             })
-
 
             socket.on('sendAttackData', (player1, player2) => {
                 const player1LoggedIn = loggedInUsers.filter(user => user.username === player1.username)
