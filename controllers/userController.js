@@ -18,7 +18,7 @@ module.exports = {
                     username,
                     image,
                     password: hash,
-                    money: 200,
+                    money: 2000,
                 })
 
                 const userToken = {
@@ -46,6 +46,7 @@ module.exports = {
                         data: {
                             token,
                             username: newUser.username,
+                            userId: newUser._id,
                             money: newUser.money,
                             image: newUser.image,
                             defaultWeapon,

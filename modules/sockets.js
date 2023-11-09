@@ -32,8 +32,7 @@ module.exports = (server) => {
 
             socket.on('disconnect', () => {
                 console.log(`Socket ${socket.id} disconnected`)
-                socket.leave('gameRoom')
-                loggedInUsers = [...loggedInUsers].filter(user => user.socketId !== socket.id)
+                loggedInUsers = loggedInUsers.filter(user => user.socketId !== socket.id)
                 io.emit('loggedInUsers', loggedInUsers)
             })
 
@@ -84,22 +83,17 @@ module.exports = (server) => {
             })
 
             socket.on('userLoggedOut', async (token) => {
-                console.log('received userLoggedOut request from socket')
-
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
                     const userData = await userDb.findOne({_id: userId})
-                    console.log('userId', userId)
 
                     if (userData) {
-                        console.log('loggedInUsers', loggedInUsers)
                         loggedInUsers = loggedInUsers.filter(user => user.id !== userId)
-                        console.log('newLoggedInUsers', loggedInUsers)
                         io.emit('loggedInUsers', loggedInUsers)
 
                     } else {
-                        console.log('user not found')
+                        console.error('user not found')
                     }
                 } catch (error) {
                     console.error('Error while user logging in', error)
@@ -108,8 +102,6 @@ module.exports = (server) => {
 
 
             socket.on('userDisconnect', async (token) => {
-                console.log('received userDisconnect request from socket')
-
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
@@ -122,8 +114,6 @@ module.exports = (server) => {
             })
 
             socket.on('generateItems', async (data) => {
-                console.log('received items generation request from socket')
-
                 const token = data.token
                 const price = data.price
                 let userId
@@ -148,11 +138,10 @@ module.exports = (server) => {
 
                         const items = [weapon, armour, potion]
 
-
                         socket.emit('itemsGenerated', {items, updatedMoney})
 
                     } else {
-                        console.log('not enough money for items generation')
+                        console.error('not enough money for items generation')
                     }
                 } catch (error) {
                     console.error('Error while generating items', error)
@@ -161,15 +150,12 @@ module.exports = (server) => {
             })
 
             socket.on('addToInventory', async (data) => {
-                console.log('received addToInventory request from socket')
-
                 const token = data.token
-                let userId;
+                let userId
 
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     userId = decoded.id
-
 
                     const newItem = new inventoryDb({
                         userId: userId,
@@ -192,11 +178,9 @@ module.exports = (server) => {
             })
 
             socket.on('addToEquipment', async (data) => {
-                console.log('received addToEquipment request from socket')
-
                 const token = data.token
                 const item = data.item
-                let userId;
+                let userId
 
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
@@ -205,7 +189,7 @@ module.exports = (server) => {
                     const existingItem = await equipmentDb.findOne({userId, name: item.name});
 
                     if (existingItem) {
-                        console.log(`Item with name '${item.name}' already exists in equipment. Not adding.`)
+                        console.error(`Item with name '${item.name}' already exists in equipment. Not adding.`)
                         return
                     }
 
@@ -260,8 +244,6 @@ module.exports = (server) => {
             })
 
             socket.on('deleteFromInventory', async (data) => {
-                console.log('received deleteFromInventory request from socket')
-
                 const token = data.token
                 let userId
                 const itemId = data.itemId
@@ -269,7 +251,6 @@ module.exports = (server) => {
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     userId = decoded.id
-
 
                     const item = await inventoryDb.findOne({_id: itemId})
 
@@ -282,18 +263,16 @@ module.exports = (server) => {
                             socket.emit('updatedInventory', inventory);
 
                         } catch (error) {
-                            console.log(error)
+                            console.error(error)
                         }
                     }
 
                 } catch (error) {
-                    console.log(error)
+                    console.error(error)
                 }
             })
 
             socket.on('deleteFromEquipment', async (data) => {
-                console.log('received deleteFromEquipment request from socket')
-
                 const token = data.token
                 let userId
                 const itemId = data.itemId
@@ -313,18 +292,16 @@ module.exports = (server) => {
                             socket.emit('updatedEquipment', equipment);
 
                         } catch (error) {
-                            console.log(error)
+                            console.error(error)
                         }
                     }
 
                 } catch (error) {
-                    console.log(error)
+                    console.error(error)
                 }
             })
 
             socket.on('getUserMoney', async (data) => {
-                console.log('received getUserMoney request from socket')
-
                 const token = data.token
                 let userId
 
@@ -341,39 +318,34 @@ module.exports = (server) => {
                 }
             })
 
-            socket.on('sendGameRequest', (targetSocketId, senderUsername, receiverUsername) => {
+            socket.on('sendGameRequest', (sender, receiver) => {
+                const receiverLoggedIn = loggedInUsers.filter(user => user.username === receiver)
+                const receiverSocketid = receiverLoggedIn[0].socketId
 
                 const data = {
                     senderId: socket.id,
-                    receiverId: targetSocketId,
-                    sender: senderUsername,
-                    receiver: receiverUsername,
+                    receiverId: receiverSocketid,
+                    sender,
+                    receiver,
                     message: 'Would you like to play a game?',
                 }
 
-                io.to(targetSocketId).emit('gameRequest', data);
+                io.to(receiverSocketid).emit('gameRequest', data)
             })
 
 
-            socket.on('acceptGameRequest', (targetSocketId, senderUsername, receiverUsername) => {
+            socket.on('acceptGameRequest', async (sender, receiver) => {
+                const receiverLoggedIn = loggedInUsers.filter(user => user.username === receiver)
+                const receiverSocketId = receiverLoggedIn[0].socketId
+
+                const senderLoggedIn = loggedInUsers.filter(user => user.username === sender)
+                const senderSocketId = senderLoggedIn[0].socketId
+
                 const data = {
-                    senderId: socket.id,
-                    receiverId: targetSocketId,
-                    sender: senderUsername,
-                    receiver: receiverUsername,
+                    sender,
+                    receiver,
                     message: 'Game accepted',
                 }
-                io.to(targetSocketId).emit('acceptedGameRequest', data);
-            })
-
-            socket.on('declineGameRequest', (targetSocketId) => {
-                const message = 'Game declined'
-                io.to(targetSocketId).emit('declinedGameRequest', message);
-            })
-
-            socket.on('joinGame', async (sender, receiver) => {
-                console.log('JOIN GAME REQUEST')
-                socket.join('gameRoom')
 
                 try {
                     const senderFound = await userDb.findOne({username: sender})
@@ -381,7 +353,6 @@ module.exports = (server) => {
 
                     const senderEquipment = await equipmentDb.find({userId: senderFound._id})
                     const receiverEquipment = await equipmentDb.find({userId: receiverFound._id})
-
 
                     const senderImage = senderFound.image
                     const receiverImage = receiverFound.image
@@ -404,66 +375,139 @@ module.exports = (server) => {
                         equipment: receiverEquipment,
                     }
 
-                    const gameData = [player1, player2]
+                    io.to(receiverSocketId).emit('acceptedGameRequest', {player1, player2, data})
+                    io.to(senderSocketId).emit('otherUserAcceptedGameRequest', {player1, player2, data})
+                } catch (e) {
+                    console.error(e)
+                }
+            })
 
-                    io.to('gameRoom').emit('StartGameData', gameData)
-                } catch (error) {
-                    console.error('Error while StartGameData', error)
+            socket.on('declineGameRequest', (receiverUsername) => {
+                const receiver = loggedInUsers.filter(user => user.username === receiverUsername)
+                const receiverSocketid = receiver[0].socketId
+                const message = 'Game declined'
+                io.to(receiverSocketid).emit('declinedGameRequest', message);
+            })
+
+            socket.on('usePotion', (data) => {
+                const player1Data = data.player1
+                const player2Data = data.player2
+                const player1Equipment = data.player1.equipment
+                const player2Equipment = data.player2.equipment
+                const currentUsername = data.currentUsername
+
+                const user = loggedInUsers.filter(user => user.username === currentUsername)
+                const userSocketid = user[0].socketId
+
+                if (player1Data.username === currentUsername) {
+                    const player2LoggedIn = loggedInUsers.filter(user => user.username === player2Data.username)
+                    const player2SocketId = player2LoggedIn[0].socketId
+
+                    const potion = player1Data.equipment.find(item => item.name === "potion")
+                    const hp = potion.hp
+                    const updatedHp = player1Data.hp + hp >= 100 ? 100 : player1Data.hp + hp
+                    const updatedEquipment = player1Equipment.filter(item => item.name !== "potion")
+
+                    const player1 = {
+                        username: player1Data.username,
+                        image: player1Data.image,
+                        hp: updatedHp,
+                        money: player1Data.money,
+                        attackTurn: player1Data.attackTurn,
+                        equipment: updatedEquipment,
+                    }
+
+                    const player2 = {
+                        username: player2Data.username,
+                        image: player2Data.image,
+                        hp: player2Data.hp,
+                        money: player2Data.money,
+                        attackTurn: player2Data.attackTurn,
+                        equipment: player2Data.equipment,
+                    }
+                    io.to(userSocketid).emit('potionUsed', {player1, player2});
+                    io.to(player2SocketId).emit('potionUsed', {player1, player2});
                 }
 
+                if (player2Data.username === currentUsername) {
+                    const player1LoggedIn = loggedInUsers.filter(user => user.username === player1Data.username)
+                    const player1SocketId = player1LoggedIn[0].socketId
+
+                    const potion = player2Equipment.find(item => item.name === "potion")
+                    const hp = potion.hp
+                    const updatedHp = player1Data.hp + hp >= 100 ? 100 : player1Data.hp + hp
+                    const updatedEquipment = player2Data.equipment.filter(item => item.name !== "potion")
+
+                    const player1 = {
+                        username: player1Data.username,
+                        image: player1Data.image,
+                        hp: player1Data.hp,
+                        money: player1Data.money,
+                        attackTurn: player1Data.attackTurn,
+                        equipment: player1Data.equipment,
+                    }
+
+                    const player2 = {
+                        username: player2Data.username,
+                        image: player2Data.image,
+                        hp: updatedHp,
+                        money: player2Data.money,
+                        attackTurn: player2Data.attackTurn,
+                        equipment: updatedEquipment,
+                    }
+                    io.to(userSocketid).emit('potionUsed', {player1, player2});
+                    io.to(player1SocketId).emit('potionUsed', {player1, player2});
+                }
+
+
             })
 
-            socket.on('leaveRoom', () => {
-                socket.leave('gameRoom');
-                console.log(`Socket ${socket.id} left the game`);
-            })
 
-
-            socket.on('sendAttackData', async (player1, player2) => {
-                console.log('received sendAttackData REQUEST:')
-
-
-
+            socket.on('sendAttackData', (player1, player2) => {
+                const player1LoggedIn = loggedInUsers.filter(user => user.username === player1.username)
+                const player1SocketId = player1LoggedIn[0].socketId
+                const player2LoggedIn = loggedInUsers.filter(user => user.username === player2.username)
+                const player2SocketId = player2LoggedIn[0].socketId
                 const player1Weapon = player1.equipment.find(item => item.name === 'weapon')
                 const player2Weapon = player2.equipment.find(item => item.name === 'weapon')
                 const player1Armour = player1.equipment.find(item => item.name === 'armour')
                 const player2Armour = player2.equipment.find(item => item.name === 'armour')
-
-
+                let player1Damage
+                let player2Damage
                 const blockedDamage = (armour, damage) => {
                     return (armour / 100) * damage
                 }
 
-
                 if (player1.attackTurn === player1.username) {
                     if (player2Armour) {
-                        player2.hp -= (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
+                        player2Damage = (player1Weapon.damage - blockedDamage(player2Armour.armour, player1Weapon.damage))
                     } else {
-                        player2.hp = -player1Weapon.damage
+                        player2Damage = player1Weapon.damage
                     }
 
                     player1.money += player1Weapon.generateGold
-
-
                     player1.attackTurn = player2.username
                     player2.attackTurn = player2.username
+                    player2.hp = player2.hp - player2Damage
+
+                    io.to(player1SocketId).emit('attackData', {player1, player2})
+                    io.to(player2SocketId).emit('attackData', {player1, player2})
+
                 } else {
                     if (player1Armour) {
-                        player1.hp -= (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
+                        player1Damage = (player2Weapon.damage - blockedDamage(player1Armour.armour, player2Weapon.damage))
                     } else {
-                        player1.hp = -player2Weapon.damage
+                        player1Damage = player2Weapon.damage
                     }
+
                     player2.money += player2Weapon.generateGold
-
-
                     player2.attackTurn = player1.username
                     player1.attackTurn = player1.username
+                    player1.hp = player1.hp - player1Damage
+
+                    io.to(player1SocketId).emit('attackData', {player1, player2})
+                    io.to(player2SocketId).emit('attackData', {player1, player2})
                 }
-
-
-                const attackData = [player1, player2]
-
-                io.to('gameRoom').emit('attackData', attackData)
 
             })
 
