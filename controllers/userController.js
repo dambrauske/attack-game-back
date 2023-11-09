@@ -6,14 +6,12 @@ const jwt = require('jsonwebtoken');
 module.exports = {
     login: async (req, res) => {
         const {username, image, password} = req.body
-        console.log('user', username, image, password)
 
         try {
             const user = await userDb.findOne({username: username})
 
             if (!user) {
                 const hash = await bcrypt.hash(password, 13)
-                console.log('new user tries to login')
                 const newUser = new userDb({
                     username,
                     image,
@@ -56,7 +54,6 @@ module.exports = {
                     res.status(500).send({error: true, message: 'Error', data: null})
                 }
             } else {
-                console.log('user already is in database')
                 const isValid = await bcrypt.compare(password, user.password)
 
                 if (!isValid) {
