@@ -43,9 +43,6 @@ module.exports = (server) => {
             })
 
             socket.on('userLogin', async (token) => {
-                console.log('received userLogin request from socket')
-                console.log('token', token)
-
                 try {
                     const decoded = await jwt.verify(token, process.env.JWT_SECRET)
                     const userId = decoded.id
@@ -490,6 +487,38 @@ module.exports = (server) => {
 
                     io.to(player1SocketId).emit('attackData', {player1, player2})
                     io.to(player2SocketId).emit('attackData', {player1, player2})
+                }
+
+            })
+
+            socket.on('userWon', async (winner) => {
+                console.log('winner', winner)
+                const winnerLoggedIn = loggedInUsers.filter(user => user.username === winner.username)
+                console.log('winnerLoggedIn', winnerLoggedIn)
+                const winnerSocketId = winnerLoggedIn[0].socketId
+                console.log('winnerSocketId', winnerSocketId)
+
+                try {
+                    const userInDb = await userDb.findOne({username: winner.username})
+                    console.log('userInDb', userInDb)
+                    const previousMoney = userInDb.money
+
+                    if (userInDb) {
+                        await userDb.findOneAndUpdate(
+                            { username: userInDb.username },
+                            { $set: { money: previousMoney + winner.money } },
+                            { new: true }
+                        )
+                    }
+
+                    const user = await userDb.findOne({username: userInDb.username}).select('-password')
+                    const money = user.money
+
+                    console.log('money', money)
+
+                    io.to(winnerSocketId).emit('winnerMoney', money)
+                } catch (e) {
+                    console.error(e)
                 }
 
             })
