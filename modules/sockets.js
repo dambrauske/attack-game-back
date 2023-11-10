@@ -72,7 +72,7 @@ module.exports = (server) => {
                         }
                         io.emit('loggedInUsers', loggedInUsers)
                     } else {
-                        console.log('user not found')
+                        console.error('user not found')
                     }
                 } catch (error) {
                     console.error('Error while user logging in', error)
@@ -365,11 +365,11 @@ module.exports = (server) => {
                 }
             })
 
-            socket.on('declineGameRequest', (receiverUsername) => {
-                const receiver = loggedInUsers.filter(user => user.username === receiverUsername)
-                const receiverSocketid = receiver[0].socketId
+            socket.on('declineGameRequest', (sender) => {
+                const senderLoggedIn = loggedInUsers.filter(user => user.username === sender)
+                const senderSocketid = senderLoggedIn[0].socketId
                 const message = 'Game declined'
-                io.to(receiverSocketid).emit('declinedGameRequest', message);
+                io.to(senderSocketid).emit('declinedGameRequest', message);
             })
 
             socket.on('usePotion', (data) => {
@@ -492,15 +492,11 @@ module.exports = (server) => {
             })
 
             socket.on('userWon', async (winner) => {
-                console.log('winner', winner)
                 const winnerLoggedIn = loggedInUsers.filter(user => user.username === winner.username)
-                console.log('winnerLoggedIn', winnerLoggedIn)
                 const winnerSocketId = winnerLoggedIn[0].socketId
-                console.log('winnerSocketId', winnerSocketId)
 
                 try {
                     const userInDb = await userDb.findOne({username: winner.username})
-                    console.log('userInDb', userInDb)
                     const previousMoney = userInDb.money
 
                     if (userInDb) {
@@ -513,8 +509,6 @@ module.exports = (server) => {
 
                     const user = await userDb.findOne({username: userInDb.username}).select('-password')
                     const money = user.money
-
-                    console.log('money', money)
 
                     io.to(winnerSocketId).emit('winnerMoney', money)
                 } catch (e) {
